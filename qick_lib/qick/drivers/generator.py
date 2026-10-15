@@ -67,9 +67,28 @@ class AbsSignalGen(SocIP):
         daccfg = soc['rf']['dacs'][self['dac']]
         for p in ['fs', 'fs_mult', 'fs_div', 'interpolation', 'f_fabric']:
             self.cfg[p] = daccfg[p]
+
+        # for mixmux8 high speed test: configure IMR effective rates & mixer clock division
+        mode = daccfg.get('datapath')
+        if mode == 3 and self.HAS_MIXER:
+            raise RuntimeError('IMR high-pass frequency mapping is not supported by this release (for mixmux8 high speed test)')
+        imr = 2 if mode in (2, 3) else 1
+        self.cfg['datapath'] = mode  # for mixmux8 high speed test
+        self.cfg['interpolation_raw'] = daccfg['interpolation']  # for mixmux8 high speed test
+        self.cfg['imr_interpolation'] = imr  # for mixmux8 high speed test
+        self.cfg['effective_interpolation'] = daccfg['interpolation'] * imr  # for mixmux8 high speed test
+        self.cfg['interpolation'] = self.cfg['effective_interpolation']  # for mixmux8 high speed test
+        self.cfg['mixer_clock_div'] = imr  # for mixmux8 high speed test
+        self.cfg['mixer_fs'] = self['fs'] / imr  # for mixmux8 high speed test
+        self.cfg['mixer_fdds_div'] = self['fs_div'] * imr  # for mixmux8 high speed test
         # interpolation reduces the DDS range
         self.cfg['f_dds'] = self['fs']/self['interpolation']
         self.cfg['fdds_div'] = self['fs_div']*self['interpolation']
+        lanes = getattr(self, 'NDDS', None)  # for mixmux8 high speed test
+        if lanes is None and isinstance(self, AbsIntSignalGen):
+            lanes = 4  # for mixmux8 high speed test
+        if lanes is not None and abs(self['f_dds'] - lanes*self['f_fabric']) > 0.001:
+            raise RuntimeError('Generator DDS rate does not match its AXI lanes and fabric clock (for mixmux8 high speed test)')
 
     def set_nyquist(self, nqz):
         """Set the Nyquist zone mode for the DAC linked to this generator.
@@ -516,13 +535,22 @@ class AxisSgMux8V1(AbsMuxSignalGen):
     AXIS Signal Generator with 8 muxed outputs, fullspeed (no DAC mixer).
     """
     bindto = ['user.org:user:axis_sg_mux8_v1:1.0',
-              'QICK:QICK:axis_sg_mux8_v1:1.0']
+              'QICK:QICK:axis_sg_mux8_v1:1.0',
+              'user.org:user:axis_sg_mux8_v2:1.0',  # for mixmux8 high speed test
+              'QICK:QICK:axis_sg_mux8_v2:1.0']  # for mixmux8 high speed test
     HAS_MIXER = False
     HAS_GAIN = True
     HAS_PHASE = True
     B_DDS = 32
     B_PHASE = 32
     N_TONES = 8
+
+class AxisSgMux8V2(AxisSgMux8V1):  # for mixmux8 high speed test
+    """
+    AxisSgMux8V2: Lean Distributed-ROM core, fixed 8-tone scaling.
+    """
+    bindto = ['user.org:user:axis_sg_mux8_v2:1.0',  # for mixmux8 high speed test
+              'QICK:QICK:axis_sg_mux8_v2:1.0']  # for mixmux8 high speed test
 
 class AxisSgMixMux8V1(AbsMuxSignalGen):
     """

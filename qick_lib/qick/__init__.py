@@ -35,8 +35,25 @@ def bitfile_path():
             'RFSoC4x2' :'qick_4x2.bit',
             'RFSoC2x4' :'qick_2x4.bit'}
     filename = board2file[os.environ['BOARD']]
-    src = os.path.join(os.path.dirname(qick.__file__), filename)
+    src = os.path.join(os.path.dirname(__file__), filename)
     return src
+
+def mixmux8_bitfile_path():  # for mixmux8 high speed test
+    """Return the absolute path to the 9.58464 GS/s Option B firmware bitfile."""
+    return os.path.join(os.path.dirname(__file__), 'mixmux8_9584_b.bit')
+
+def mux8_7864_bitfile_path():  # for mixmux8 high speed test
+    """Return the absolute path to the optimized 7.86432 GS/s mux8 firmware bitfile."""
+    return os.path.join(os.path.dirname(__file__), 'mux8_7864_n9.bit')
+
+def mux8_7864_pfb226_bitfile_path():  # for mixmux8 high speed test
+    """Return the absolute path to the 7.86432 GS/s mux8 firmware bitfile with PFB on 2_226."""
+    return os.path.join(os.path.dirname(__file__), 'mux8_7864_n9_pfb226.bit')
+
+def mux8_7864_v2_2us_bitfile_path():  # for mixmux8 high speed test
+    """Return the absolute path to the Option A (axis_sg_mux8_v2, 2.083 us waveform) firmware bitfile."""
+    return os.path.join(os.path.dirname(__file__), 'mux8_7864_v2_2us.bit')
+
 
 # Check for supported PYNQ versions that are compatible with QICK library
 # only do the check if running on a Zynq

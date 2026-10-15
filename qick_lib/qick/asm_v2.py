@@ -1933,13 +1933,10 @@ class ReadoutManager(AbsRegisterManager):
         # if the matching generator has a mixer, that frequency needs to be added to this one
         # it should already be rounded to the readout and mixer frequency steps, so no additional rounding is needed
         # the relevant quantization step is still going to be the readout+generator step
-        gen_ch = par.get('gen_ch')
-        if gen_ch is not None and gen_ch not in self.prog.gen_chs:
-            raise RuntimeError("readout %d is frequency-matched to generator %d, but that generator is not declared in this program"%(self.ch, gen_ch))
-        if gen_ch is not None and 'mixer_freq' in self.prog.gen_chs[gen_ch]:
+        if 'gen_ch' in par and 'mixer_freq' in self.prog.gen_chs[par['gen_ch']]:
             # the mixer_freq should already be rounded to a valid RO freq (by specifying ro_ch in declare_gen)
             # but we round here anyway - TODO: we could warn if it's not rounded
-            mixer_freq = self.prog.gen_chs[gen_ch]['mixer_freq']['rounded']
+            mixer_freq = self.prog.gen_chs[par['gen_ch']]['mixer_freq']['rounded']
             mixer_freq = self.prog.roundfreq(mixer_freq, [self.chcfg])
         else:
             mixer_freq = 0
@@ -1947,7 +1944,7 @@ class ReadoutManager(AbsRegisterManager):
             f_dds = par['freq'] - mixer_freq
         else:
             f_dds = par['freq']
-        freqreg = self.prog.freq2reg_adc(ro_ch=self.ch, f=f_dds, gen_ch=gen_ch)
+        freqreg = self.prog.freq2reg_adc(ro_ch=self.ch, f=f_dds, gen_ch=par.get('gen_ch'))
         freqreg += self.prog.freq2reg_adc(ro_ch=self.ch, f=mixer_freq)
         if self.prog.FLIP_DOWNCONVERSION: freqreg *= -1
 
@@ -1999,6 +1996,7 @@ class QickProgramV2(AsmV2, AbsQickProgram):
                 'axis_sg_mux4_v2': MultiplexedGenManager,
                 'axis_sg_mux4_v3': MultiplexedGenManager,
                 'axis_sg_mux8_v1': MultiplexedGenManager,
+                'axis_sg_mux8_v2': MultiplexedGenManager,  # for mixmux8 high speed test
                 'axis_sg_mixmux8_v1': MultiplexedGenManager,
                 }
 
@@ -2062,7 +2060,7 @@ class QickProgramV2(AsmV2, AbsQickProgram):
         # * declare_gen, declare_readout
         # * add_pulse
         # * macros
-        #
+        # 
         # user commands can add macros and/or waveforms+pulses to the program
         # macros are user commands
         # preprocessing: allocate registers, convert params from physical units to ASM values, define the timeline
@@ -2408,8 +2406,8 @@ class QickProgramV2(AsmV2, AbsQickProgram):
             Selects the output source. The input is real, the output is complex. If "product" (the default), the output is the product of input and DDS. If "dds", the output is the DDS only. If "input", the output is from the input. If "zero", the output is always zero.
         length : float or QickParam
             The duration (us) of the config pulse. The default is the shortest possible length.
-        gen_ch : int or None
-            generator channel (omit or use None if you don't want the downconversion frequency to be rounded to a valid DAC frequency or be offset by the DAC mixer frequency)
+        gen_ch : int
+            generator channel (use None if you don't want the downconversion frequency to be rounded to a valid DAC frequency or be offset by the DAC mixer frequency)
         """
         if isinstance(ch, Number):
             ch = [ch]

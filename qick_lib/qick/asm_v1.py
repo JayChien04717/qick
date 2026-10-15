@@ -565,7 +565,8 @@ class QickProgram(AbsQickProgram):
                 'axis_sg_mux4_v1': MultiplexedGenManager,
                 'axis_sg_mux4_v2': MultiplexedGenManager,
                 'axis_sg_mux4_v3': MultiplexedGenManager,
-                'axis_sg_mux8_v1': MultiplexedGenManager}
+                'axis_sg_mux8_v1': MultiplexedGenManager,
+                'axis_sg_mux8_v2': MultiplexedGenManager}  # for mixmux8 high speed test
 
     # Gaussian and DRAG definitions use incorrect original definition, which gives a pulse that is too narrow by sqrt(2)
     GAUSS_BUG = True

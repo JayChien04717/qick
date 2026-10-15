@@ -258,6 +258,12 @@ class RFDC(SocIP, xrfdc.RFdc):
                     chcfg['interpolation'] = block.InterpolationFactor
                     if self['ip_type'] == self.XRFDC_GEN3:
                         chcfg['datapath'] = block.DataPathMode
+                        # for mixmux8 high speed test
+                        chcfg['imr_interpolation'] = 2 if chcfg['datapath'] in (2, 3) else 1
+                    else:
+                        chcfg['imr_interpolation'] = 1  # for mixmux8 high speed test
+                    chcfg['interpolation_raw'] = chcfg['interpolation']  # for mixmux8 high speed test
+                    chcfg['effective_interpolation'] = chcfg['interpolation'] * chcfg['imr_interpolation']  # for mixmux8 high speed test
                     #chcfg['fabric_div'] = data_width*chcfg['interpolation']//iq
                 else:
                     chcfg['decimation'] = block.DecimationFactor
@@ -609,16 +615,19 @@ class RFDC(SocIP, xrfdc.RFdc):
         blkcache['mixer_freq'] = f
         blkcache['mixer_scale'] = scalecode
 
-    def get_mixer_freq(self, blockname, blocktype='dac'):
+    # for mixmux8 high speed test: support force_read for hardware readback verification
+    def get_mixer_freq(self, blockname, blocktype='dac', force_read=False):
         if blocktype not in ['dac','adc']:
             raise RuntimeError("Block type must be adc or dac")
         blkcache = self.settings_cache[blocktype][blockname]
-        if 'mixer_freq' not in blkcache:
+        if force_read or 'mixer_freq' not in blkcache:  # for mixmux8 high speed test
             blk_mixer = self._get_block(blocktype, blockname).MixerSettings
             if blk_mixer['MixerType'] != xrfdc.MIXER_TYPE_FINE:
                 raise RuntimeError("tried to get mixer freq for %s %s, but mixer is not enabled" % (blocktype.upper(), blockname))
             f = blk_mixer['Freq']
             self.logger.info('%s block %s: read mixer freq=%f'%(blocktype.upper(), blockname, f))
+            if force_read:  # for mixmux8 high speed test
+                return f
             blkcache['mixer_freq'] = f
         return blkcache['mixer_freq']
 
