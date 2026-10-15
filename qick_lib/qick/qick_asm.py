@@ -579,8 +579,7 @@ class QickConfig():
         """
         mixercfg = {}
         mixercfg['fs_mult'] = gencfg['fs_mult']
-        # for mixmux8 high speed test: scale mixer NCO divider in IMR mode
-        mixercfg['fdds_div'] = gencfg.get('mixer_fdds_div', gencfg['fs_div'])
+        mixercfg['fdds_div'] = gencfg['fs_div']
         mixercfg['b_dds'] = 48
         return mixercfg
 
@@ -756,9 +755,7 @@ class QickConfig():
         else:
             rounded_f = self.roundfreq(mixer_freq, [mixercfg, self['readouts'][ro_ch]])
         cfg['rounded'] = rounded_f
-        # for mixmux8 high speed test: RFdc folds IMR mixer frequencies using Fs/2
-        mixer_fs = gencfg.get('mixer_fs', gencfg['fs'])
-        if abs(rounded_f) > mixer_fs/2 and nqz==2:
+        if abs(rounded_f) > gencfg['fs']/2 and nqz==2:
             cfg['setval'] = -rounded_f
         else:
             cfg['setval'] = rounded_f
@@ -791,9 +788,6 @@ class QickConfig():
                 tone['freq_rounded'] += mixer_freq
 
             if gencfg['interpolation']!=1 and abs(f_rounded) > gencfg['f_dds']/2:
-                # for mixmux8 high speed test
-                if gencfg.get('datapath') in (2, 3):
-                    raise RuntimeError('IMR tone offset exceeds the DDS range; automatic Nyquist-image fallback is disabled (for mixmux8 high speed test)')
                 fs = gencfg['fs']
                 # if the requested DDS frequency is out of range, check if there's a Nyquist image of the desired output freq that is reachable
                 # generally this will be the image in the same Nyquist zone as the mixer frequency
